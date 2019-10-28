@@ -17,7 +17,7 @@ else
 
   cd sample-network/docker-compose/
 
-  docker run -ti --rm -e DEV_PATH=$PWD -v $PWD/../../:/blockchain-quick-start hyperledger/fabric-tools:1.4.0 bash -c "cd /blockchain-quick-start/sample-network/docker-compose && ./start.sh"
+  docker run -ti --rm -e DEV_PATH=$PWD -v $PWD/../../:/blockchain-quick-start hyperledger/fabric-tools:1.4.3 bash -c "cd /blockchain-quick-start/sample-network/docker-compose && ./start.sh"
 
   docker-compose -f docker-compose-e2e.yaml up -d 2>&1
   if [[ $? -ne 0 ]]; then

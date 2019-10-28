@@ -300,26 +300,27 @@ let genConfigtxObj = async function (orgNames) {
     "Profiles": {
       "GeneratedChannel": {
         "Consortium": "SampleConsortium",
+        "Policies": {
+          "Readers": {
+            "Type": "ImplicitMeta",
+            "Rule": "ANY Readers",
+          },
+          "Writers": {
+            "Type": "ImplicitMeta",
+            "Rule": "ANY Writers",
+          },
+          "Admins": {
+            "Type": "ImplicitMeta",
+            "Rule": "MAJORITY Admins",
+          }
+        },
+        "Capabilities": {
+          "V1_4_3": true,
+          "V1_3": false,
+          "V1_1": false
+        },
         "Application": {
           "Organizations": orgObjs,
-          "ACLs": {
-            "lscc/ChaincodeExists": "/Channel/Application/Readers",
-            "lscc/GetDeploymentSpec": "/Channel/Application/Readers",
-            "lscc/GetChaincodeData": "/Channel/Application/Readers",
-            "lscc/GetInstantiatedChaincodes": "/Channel/Application/Readers",
-            "qscc/GetChainInfo": "/Channel/Application/Readers",
-            "qscc/GetBlockByNumber": "/Channel/Application/Readers",
-            "qscc/GetBlockByHash": "/Channel/Application/Readers",
-            "qscc/GetTransactionByID": "/Channel/Application/Readers",
-            "qscc/GetBlockByTxID": "/Channel/Application/Readers",
-            "cscc/GetConfigBlock": "/Channel/Application/Readers",
-            "cscc/GetConfigTree": "/Channel/Application/Readers",
-            "cscc/SimulateConfigTreeUpdate": "/Channel/Application/Readers",
-            "peer/Propose": "/Channel/Application/Writers",
-            "peer/ChaincodeToChaincode": "/Channel/Application/Readers",
-            "event/Block": "/Channel/Application/Readers",
-            "event/FilteredBlock": "/Channel/Application/Readers",
-          },
           "Policies": {
             "Readers": {
               "Type": "ImplicitMeta",
@@ -334,7 +335,12 @@ let genConfigtxObj = async function (orgNames) {
               "Rule": "MAJORITY Admins",
             }
           },
-          "Capabilities": {"V1_3": true}
+          "Capabilities": {
+            "V1_4_2": true,
+            "V1_3": false,
+            "V1_2": false,
+            "V1_1": false
+          }
         }
       }
     }
