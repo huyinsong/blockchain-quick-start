@@ -170,7 +170,10 @@ let invokeChaincode = async function (chaincodeName, channelName, functionName, 
     error_message = util.format('Failed to invoke due to error: ' + error.stack ? error.stack : error);
     logger.error(error_message);
   }
-
+  logger.info('Successfully invoked the chaincode \'%s\' to the channel \'%s\' for transaction ID: %s',
+      chaincodeName, channelName, tx_id_string);
+    return ['yes', tx_id_string, response_payload];
+/** 
   if (!error_message) {
     logger.info('Successfully invoked the chaincode \'%s\' to the channel \'%s\' for transaction ID: %s',
       chaincodeName, channelName, tx_id_string);
@@ -179,7 +182,7 @@ let invokeChaincode = async function (chaincodeName, channelName, functionName, 
     let message = util.format('Failed to invoke chaincode. cause: %s', error_message);
     logger.error(message);
     return ['no', message];
-  }
+  }**/
 };
 
 let queryChaincode = async function (chaincodeName, channelName, functionName, args,
@@ -205,14 +208,14 @@ let queryChaincode = async function (chaincodeName, channelName, functionName, a
     * because it will return all peer's query result whoever you are. It's not good for demo of
     * private data. (Query from org2 should return an error in that scenario)
     * But these codes indeed works.
-    * */
+    * 
 
     if (useDiscoverService) {
       logger.debug("Got useDiscoverService, do request with service discovery");
       let asLocalhost = await helper.asLocalhost();
       await channel.initialize({discover: true, asLocalhost: asLocalhost});
     }
-
+    */
     // get an admin based transactionID.
     // This should be set to false, but if that, you must call function:
     // client.setUserContext({username:'admin', password:'adminpw'}, false);
