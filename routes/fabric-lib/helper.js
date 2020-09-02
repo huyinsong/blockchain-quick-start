@@ -99,6 +99,7 @@ let initClient = async function () {
   while (!done) {
     try {
       client = hfc.loadFromConfig(networkConfigPath);
+      //client.loadFromConfig
       networkConfig = await loadNetConfig();
       networkExtConfig = await loadNetExtConfig();
       while (!networkExtConfig) {
@@ -126,6 +127,10 @@ let loadNetConfig = async function () {
   let fileData = fs.readFileSync(networkConfigPath);
   return yaml.safeLoad(fileData);
 };
+
+let getNetConfig = async function() {
+  return JSON.parse(JSON.stringify(networkConfig));
+}
 
 let loadNetExtConfig = async function () {
   let fileData = fs.readFileSync(networkExtConfigPath);
@@ -157,8 +162,7 @@ let getClientForOrg = async function (orgName) {
   client.loadFromConfig(clientFile);
 
   // clean useless cache file
-  fs.removeSync(tmpDir);
-
+  //fs.removeSync(tmpDir);
   // return a deep clone of client;
   return _.cloneDeep(client);
 };
@@ -177,7 +181,6 @@ let getClientForOrg_normUsage = async function (org) {
   // nothing will actually be replaced.
   // This will also set an admin identity because the organization defined in the
   // client section has one defined
-
   client.loadFromConfig('config/' + org + '.yaml');
 
   // this will create both the state store and the crypto store based
@@ -198,6 +201,7 @@ let getClientForOrg_normUsage = async function (org) {
   // }
   // logger.debug('getClientForOrg - ****** END %s %s \n\n', userorg, username);
   let user = await client.getUserContext('admin', true);
+  var util = require('util');
   if (!user) {
     await client.setUserContext({username: 'admin', password: 'adminpw'}, false);
   }
@@ -212,8 +216,8 @@ let generateChannelTx = async function (channelName, orgNames) {
 
   // generate channel.tx file and return
   let configtxgenExec = 'configtxgen';
-  let cmdStr = configtxgenExec + ' -profile GeneratedChannel'
-    + ' -configPath ' + tmpDir
+  let cmdStr = configtxgenExec + ' -configPath ' + tmpDir + ' -profile GeneratedChannel'
+    //+ ' -configPath ' + tmpDir
     + ' -channelID ' + channelName
     + ' -outputCreateChannelTx ' + tmpDir + '/channel.tx';
 
@@ -300,46 +304,18 @@ let genConfigtxObj = async function (orgNames) {
     "Profiles": {
       "GeneratedChannel": {
         "Consortium": "SampleConsortium",
-        "Policies": {
-          "Readers": {
-            "Type": "ImplicitMeta",
-            "Rule": "ANY Readers",
-          },
-          "Writers": {
-            "Type": "ImplicitMeta",
-            "Rule": "ANY Writers",
-          },
-          "Admins": {
-            "Type": "ImplicitMeta",
-            "Rule": "MAJORITY Admins",
-          }
-        },
         "Capabilities": {
-          "V1_4_3": true,
+          "V1_4_3": false,
           "V1_3": false,
-          "V1_1": false
+          "V1_1": true
         },
         "Application": {
           "Organizations": orgObjs,
-          "Policies": {
-            "Readers": {
-              "Type": "ImplicitMeta",
-              "Rule": "ANY Readers",
-            },
-            "Writers": {
-              "Type": "ImplicitMeta",
-              "Rule": "ANY Writers",
-            },
-            "Admins": {
-              "Type": "ImplicitMeta",
-              "Rule": "MAJORITY Admins",
-            }
-          },
           "Capabilities": {
-            "V1_4_2": true,
+            "V1_4_2": false,
             "V1_3": false,
             "V1_2": false,
-            "V1_1": false
+            "V1_1": true
           }
         }
       }
@@ -603,6 +579,7 @@ let fetchOldChannelConfig = async function (channel) {
   // STEP 1: get old channel config from orderer
   // peer channel fetch config config_block.pb -o orderer.example.com:7050 -c $CHANNEL_NAME --tls --cafile $ORDERER_CA
   let configEnvelope = await channel.getChannelConfigFromOrderer();
+  logger.info("Fetch channel configuration from orderer");
   if (!configEnvelope) {
     let errMsg = "Get old channel's config failed!";
     logger.error(errMsg);
@@ -847,6 +824,35 @@ const bufferToString = function (obj, charset) {
   return obj;
 };
 
+let getOrderer = async function(ordererName) {
+    let networkconfig = JSON.parse(JSON.stringify(networkConfig));
+    let ordererJSON = networkconfig.orderers[ordererName];
+    let ssl1= ordererJSON.grpcOptions["ssl-target-name-override"];
+    let ssl2=ordererJSON.grpcOptions["hostnameOverride"];
+    let pem = ordererJSON.tlsCACerts["pem"];
+    let option = {
+      "ssl-target-name-override": ssl1,
+      "hostnameOverride": ssl2,
+      "pem":pem
+    }
+    return new hfc.Orderer(ordererJSON.url, option);
+}
+
+let getPeer = async function(peerName) {
+  let networkconfig = JSON.parse(JSON.stringify(networkConfig));
+  let peerJSON = networkconfig.peers[peerName];
+  let ssl1= peerJSON.grpcOptions["ssl-target-name-override"];
+  let ssl2=peerJSON.grpcOptions["hostnameOverride"];
+  let pem = peerJSON.tlsCACerts["pem"];
+  let option = {
+    "ssl-target-name-override": ssl1,
+    "hostnameOverride": ssl2,
+    "pem":pem
+  }
+  return new hfc.Peer(peerJSON.url, option);
+}
+exports.getPeer = getPeer;
+exports.getOrderer = getOrderer
 exports.initClient = initClient;
 exports.isBase64 = isBase64;
 exports.isGzip = isGzip;
@@ -870,3 +876,5 @@ exports.fetchOldChannelConfig = fetchOldChannelConfig;
 exports.generateNewChannelConfig = generateNewChannelConfig;
 exports.generateDefaultACLs = generateDefaultACLs;
 exports.bufferToString = bufferToString;
+exports.getNetConfig = getNetConfig;
+exports.getClientForOrg_normUsage = getClientForOrg_normUsage;

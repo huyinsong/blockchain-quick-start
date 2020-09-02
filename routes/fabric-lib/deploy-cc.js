@@ -146,17 +146,26 @@ let instantiateUpgradeChaincode = async function(chaincodeName, chaincodeType, c
   try {
     // first setup the client for this org
     let client = await helper.getClientForOrg(orgName);
+    
     logger.debug('Successfully got the fabric client for the organization "%s"', orgName);
-
     let channel = client.newChannel(channelName);
-    // assign orderer to channel
-    orderers.forEach(function (ordererName) {
-      channel.addOrderer(client.getOrderer(ordererName));
+    
+    
+    var util = require('util');
+    //assign orderers to channel
+  await orderers.forEach(function(ordererName){
+    helper.getOrderer(ordererName).then(function (orderer){
+      channel.addOrderer(orderer);
     });
-    // assign peers to channel
-    peers.forEach(function (peerName) {
-      channel.addPeer(client.getPeer(peerName));
+  });
+    
+  // assign peers to channel
+  await peers.forEach(function(peerName){
+    helper.getPeer(peerName).then(function(peer){
+      channel.addPeer(peer);
     });
+  });
+    
 
     if (useDiscoverService) {
       logger.debug("Got useDiscoverService, do request with service discovery");
@@ -173,6 +182,7 @@ let instantiateUpgradeChaincode = async function(chaincodeName, chaincodeType, c
 
     // send proposal to endorser
     let request = {
+      targets:peers,
       chaincodeId: chaincodeName,
       chaincodeType: chaincodeType,
       chaincodeVersion: chaincodeVersion,

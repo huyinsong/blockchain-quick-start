@@ -24,19 +24,19 @@ let invokeChaincode = async function (chaincodeName, channelName, functionName, 
     let client = await helper.getClientForOrg(orgName);
 
     let channel = client.newChannel(channelName);
-    // assign orderer to channel
-    orderers.forEach(function (ordererName) {
-      channel.addOrderer(client.getOrderer(ordererName));
+    //assign orderers to channel
+    await orderers.forEach(function(ordererName){
+    helper.getOrderer(ordererName).then(function (orderer){
+      channel.addOrderer(orderer);
     });
-    // assign peers to channel
-    peers.forEach(function (peerName) {
-      channel.addPeer(client.getPeer(peerName));
+  });
+    
+  // assign peers to channel
+  await peers.forEach(function(peerName){
+    helper.getPeer(peerName).then(function(peer){
+      channel.addPeer(peer);
     });
-    if (useDiscoverService) {
-      logger.debug("Got useDiscoverService, do request with service discovery");
-      let asLocalhost = await helper.asLocalhost();
-      await channel.initialize({discover: true, asLocalhost: asLocalhost});
-    }
+  });
 
     // get an admin based transactionID.
     // This should be set to false, but if that, you must call function:
@@ -47,6 +47,7 @@ let invokeChaincode = async function (chaincodeName, channelName, functionName, 
     let tx_id = client.newTransactionID(true);
     tx_id_string = tx_id.getTransactionID();
     let request = {
+      targets: peers,
       args: args,
       chaincodeId: chaincodeName,
       chainId: channelName,
@@ -191,43 +192,27 @@ let queryChaincode = async function (chaincodeName, channelName, functionName, a
   try {
     logger.debug("Load privateKey and signedCert");
     // first setup the client for this org
-    let client = await helper.getClientForOrg(orgName);
-
+    let client = await helper.getClientForOrg_normUsage(orgName);
     let channel = client.newChannel(channelName);
-    // assign orderer to channel
-    orderers.forEach(function (ordererName) {
-      channel.addOrderer(client.getOrderer(ordererName));
+    //assign orderers to channel
+    await orderers.forEach(function(ordererName){
+    helper.getOrderer(ordererName).then(function (orderer){
+      channel.addOrderer(orderer);
     });
-    // assign peers to channel
-    peers.forEach(function (peerName) {
-      channel.addPeer(client.getPeer(peerName));
+  });
+    
+  // assign peers to channel
+  await peers.forEach(function(peerName){
+    helper.getPeer(peerName).then(function(peer){
+      channel.addPeer(peer);
     });
-
-    /*
-    * I don't think it's a good idea to bind service discovery function with the query function,
-    * because it will return all peer's query result whoever you are. It's not good for demo of
-    * private data. (Query from org2 should return an error in that scenario)
-    * But these codes indeed works.
-    * 
-
-    if (useDiscoverService) {
-      logger.debug("Got useDiscoverService, do request with service discovery");
-      let asLocalhost = await helper.asLocalhost();
-      await channel.initialize({discover: true, asLocalhost: asLocalhost});
-    }
-    */
-    // get an admin based transactionID.
-    // This should be set to false, but if that, you must call function:
-    // client.setUserContext({username:'admin', password:'adminpw'}, false);
-    // to setup a new User object. And since that, you have to enable your CA
-    // with you all the time.
-    // For convenience, I just do all of these transactions with admin user.
+  });
     let tx_id = client.newTransactionID(true);
     let request = {
+      targets: peers,
       chaincodeId: chaincodeName,
       fcn: functionName,
       args: args,
-      transientMap: transient,
       txId: tx_id,
       request_timeout: 600000
     };

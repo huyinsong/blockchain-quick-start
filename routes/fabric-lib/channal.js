@@ -16,8 +16,9 @@ let createChannel = async function (channelName, includeOrgNames, ordererName, o
   try {
     // first setup the client for this org
     let client = await helper.getClientForOrg(orgName);
+    let orderer
     logger.debug('Successfully got the fabric client for the organization "%s"', 'Org1');
-
+    client.newChannel(channelName);
     // read in the envelope for the channel config raw bytes
     let createTxResult = await helper.generateChannelTx(channelName, includeOrgNames);
     if (createTxResult[0] === false) {
@@ -25,19 +26,17 @@ let createChannel = async function (channelName, includeOrgNames, ordererName, o
     }
     // extract the channel config bytes from the envelope to be signed
     let channelConfig = client.extractChannelConfig(createTxResult[1]);
-
+    
+    
     // Acting as a client in the given organization provided with "orgName" param
     // sign the channel config bytes as "endorsement", this is required by
     // the orderer's channel creation policy
     // this will use the admin identity assigned to the client when the connection profile was loaded
-    let signature = client.signChannelConfig(channelConfig);
-
-    let orderer = client.getOrderer(ordererName);
-
+    let signature = client.signChannelConfig(channelConfig);    
     let request = {
       config: channelConfig,
       name: channelName,
-      orderer: orderer,
+      orderer: ordererName,
       signatures: [signature],
       txId: client.newTransactionID(true) // get an admin based transactionID
     };
@@ -71,19 +70,24 @@ let joinChannel = async function (channelName, orderers, orgName, peers) {
     logger.info('Calling peers in organization "%s" to join the channel', orgName);
     client = await helper.getClientForOrg(orgName);
     logger.debug('Successfully got the fabric client for the organization "%s"', orgName);
-
+    //create new channel
     let channel = client.newChannel(channelName);
-    // assign orderer to channel
-    orderers.forEach(function (ordererName) {
-      channel.addOrderer(client.getOrderer(ordererName));
+    //assign orderers to channel
+    orderers.forEach(function(ordererName){
+      helper.getOrderer(ordererName).then(function (orderer){
+        channel.addOrderer(orderer);
+      });
     });
+      
     // assign peers to channel
-    peers.forEach(function (peerName) {
-      channel.addPeer(client.getPeer(peerName));
+    peers.forEach(function(peerName){
+      helper.getPeer(peerName).then(function(peer){
+        channel.addPeer(peer);
+      });
     });
-
     let request = {
-      txId: client.newTransactionID(true) //get an admin based transactionID
+      txId: client.newTransactionID(true), //get an admin based transactionID
+      orderer: orderers[0]
     };
     let genesis_block = await channel.getGenesisBlock(request);
 
@@ -93,6 +97,7 @@ let joinChannel = async function (channelName, orderers, orgName, peers) {
     promises.push(new Promise(resolve => setTimeout(resolve, 2000)));
 
     let join_request = {
+      targets: peers,
       txId: client.newTransactionID(true), //get an admin based transactionID
       block: genesis_block
     };
@@ -316,11 +321,20 @@ let updateAnchorPeer = async function (channelName, orderers, orgName, peers) {
     return [false, genesisOrgNameResult[1]];
   }
   let genesisOrgName = genesisOrgNameResult[1];
-
+  //create new channel
   let channel = client.newChannel(channelName);
-  // assign orderer to channel
-  orderers.forEach(function (ordererName) {
-    channel.addOrderer(client.getOrderer(ordererName));
+  //assign orderers to channel
+  await orderers.forEach(function(ordererName){
+    helper.getOrderer(ordererName).then(function (orderer){
+      channel.addOrderer(orderer);
+    });
+  });
+    
+  // assign peers to channel
+  await peers.forEach(function(peerName){
+    helper.getPeer(peerName).then(function(peer){
+      channel.addPeer(peer);
+    });
   });
 
   try {
@@ -330,7 +344,6 @@ let updateAnchorPeer = async function (channelName, orderers, orgName, peers) {
       return [false, fetchResult[1]];
     }
     let oldChannelConfig = fetchResult[1];
-
     // generate new channel config json with new anchor peers
     let newChannelConfig = JSON.parse(JSON.stringify(oldChannelConfig)); // Deep copy
     if (oldChannelConfig.channel_group.groups.Application.groups[genesisOrgName]) {
@@ -384,11 +397,11 @@ let updateAnchorPeer = async function (channelName, orderers, orgName, peers) {
     // Making the request and send to orderer
     let request = {
       config: channelConfig,
+      orderer: orderers[0],
       signatures: [signature],
       name: channelName,
       txId: client.newTransactionID(true) // get an admin based transactionID
     };
-
     // send to orderer
     let response = await client.updateChannel(request);
     logger.debug(' response ::%j', response);
