@@ -121,20 +121,20 @@ let installChaincode = async function (chaincodeContent, chaincodeName, chaincod
         // while in tar.gz format, judge chaincode language, default is golang
         logger.debug("Judge chaincode language type in dir: " + tmpDir);
         // node js chaincode type support
-        let isNodeChaincodeFlag = await helper.isNodeChaincode(tmpDir);
-        if (isNodeChaincodeFlag[0]) {
-          let chaincodeNodePath = isNodeChaincodeFlag[1];
-          logger.debug("Got node js chaincode type! chaincode path: " + chaincodeNodePath);
+        //let isNodeChaincodeFlag = await helper.isNodeChaincode(tmpDir);
+        //if (isNodeChaincodeFlag[0]) {
+          //let chaincodeNodePath = isNodeChaincodeFlag[1];
+          logger.debug("Got "+chaincodeType+" chaincode type! chaincode path: " + tmpDir);
           // node js chaincode install request compose
           let package_request = {
-            chaincodeType: 'node',
+            chaincodeType: chaincodeType,
             label: chaincodeLabel,
-            chaincodePath: chaincodeNodePath
+            chaincodePath: tmpDir
           };
           let cc_package = await chaincode.package(package_request);
           // use an existing package
           chaincode.setPackage(cc_package);
-        }
+        //}
       } else {
         return [false, 'Got chaincode single file with unknown chaincode language type'];
       }
@@ -147,7 +147,7 @@ let installChaincode = async function (chaincodeContent, chaincodeName, chaincod
       let peer = client.getPeer(peerName);
       let install_request = {
         target: peer,
-        request_timeout: 300000 // give the peers some extra time
+        request_timeout: 3000000 // give the peers some extra time
       };
       let package_id = await chaincode.install(install_request);
       logger.debug('Chaincode has been successfully installed on peer: ' + peerName

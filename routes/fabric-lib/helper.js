@@ -679,6 +679,25 @@ let isNodeChaincode = async function (chaincodePath) {
   return [false]
 };
 
+let isJavaChaincode = async function (chaincodePath) {
+  let curPath = fs.readdirSync(chaincodePath);
+  for (let ele of curPath) {
+    let subPath = path.join(chaincodePath, ele);
+    let stat = fs.statSync(subPath);
+    if (stat.isDirectory()) {
+      logger.debug("search dir: " + subPath);
+      return await isNodeChaincode(subPath);
+    } else {
+      logger.debug("got file: " + ele);
+      if (ele === 'pom.xml' || ele === 'build.gradle') {
+        logger.debug("got package.json, judge this chaincode type as java");
+        return [true, chaincodePath];
+      }
+    }
+  }
+  return [false]
+};
+
 // fetch old channel config json from orderer, need a channel object which consist of orderer
 let fetchOldChannelConfig = async function (channel) {
 
@@ -1033,6 +1052,7 @@ exports.generateNewOrgJSON = generateNewOrgJSON;
 exports.loadGenesisOrgName = loadGenesisOrgName;
 exports.newOrgUpdateNetworkConfig = newOrgUpdateNetworkConfig;
 exports.isNodeChaincode = isNodeChaincode;
+exports.isJavaChaincode = isJavaChaincode;
 exports.fetchOldChannelConfig = fetchOldChannelConfig;
 exports.generateNewChannelConfig = generateNewChannelConfig;
 exports.generateDefaultACLs = generateDefaultACLs;
